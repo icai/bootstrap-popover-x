@@ -3,14 +3,14 @@
  * fork url: https://github.com/icai/bootstrap-popover-x
  * Licensed under MIT
  * don't complete , don't fork
- *  
+ *
  */
 ! function($) {
     var PopoverX = function(element, options) {
-        var self = this;
-        this.options = options;
-        this.$element = $(element).on('click.dismiss.popoverX', '[data-dismiss="popover-x"]', $.proxy(this.hide, this));
-        this.init();
+        this.type = 'popoverX'
+        this.options =
+        this.$element = null
+        this.init(element, options)
     }
 
     PopoverX.VERSION = '3.3.1'
@@ -18,18 +18,30 @@
     PopoverX.TRANSITION_DURATION = 150
 
     PopoverX.DEFAULTS = $.extend({}, $.fn.modal.Constructor.defaults, $.fn.popover.Constructor.DEFAULTS, {
-        template: '<div class="popover" role="tooltip"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content"></div><div class="popover-fonter"></div></div>'
+        template: '<div class="popover" role="tooltip"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content"></div><div class="popover-fonter"></div></div>',
         keyboard: true,
+        container: 'body',
         buttons: {},
         fonter: ''
 
     })
 
-    PopoverX.prototype = $.extend({}, $.fn.modal.Constructor.prototype, $.fn.popover.Constructor.prototype);
+    PopoverX.prototype = $.extend({}, $.fn.modal.Constructor.prototype ,{
+        tip: $.fn.popover.Constructor.prototype.tip,
+        getTitle: $.fn.popover.Constructor.prototype.getTitle,
+        getContent: $.fn.popover.Constructor.prototype.getContent,
+        getPosition: $.fn.popover.Constructor.prototype.getPosition,
+        getCalculatedOffset: $.fn.popover.Constructor.prototype.getCalculatedOffset,
+        applyPlacement: $.fn.popover.Constructor.prototype.applyPlacement,
+        getViewportAdjustedDelta: $.fn.popover.Constructor.prototype.getViewportAdjustedDelta,
+        replaceArrow: $.fn.popover.Constructor.prototype.replaceArrow
+    });
 
 
     PopoverX.prototype.constructor = PopoverX;
-    PopoverX.prototype.init = function() {
+    PopoverX.prototype.init = function(element, options) {
+        this.$element = $(element);
+        this.options = options;
         this.$body = $(document.body);
         this.$target = this.options.$target;
         if (this.$element.find('.popover-footer').length) {
@@ -50,7 +62,6 @@
         return prefix
     }
 
-
     PopoverX.prototype.resize = function() {
         if (this.isShown) {
             $(window).on('resize.bs.modal', $.proxy(this.handleUpdate, this))
@@ -60,7 +71,8 @@
     }
 
 
-    Popover.prototype.setContent = function() {
+
+    PopoverX.prototype.setContent = function() {
         var $tip = this.tip()
         var title = this.getTitle()
         var content = this.getContent()
@@ -75,7 +87,7 @@
         // IE8 doesn't accept hiding via the `:empty` pseudo selector, we have to do
         // this manually by checking the contents.
         if (!$tip.find('.popover-title').html()) $tip.find('.popover-title').hide()
-        if (!$tip.find('.popover-title').html()) $tip.find('.popover-fonter').hide()
+        if (!$tip.find('.popover-fonter').html()) $tip.find('.popover-fonter').hide()
     }
 
     PopoverX.prototype.handleUpdate = function() {
@@ -104,63 +116,152 @@
     }
 
 
+    PopoverX.prototype.backdrop = function(callback) {
+        var that = this
+        var animate = this.$element.hasClass('fade') ? 'fade' : ''
+
+        if (this.isShown && this.options.backdrop) {
+            var doAnimate = $.support.transition && animate
+
+            this.$backdrop = $('<div class="modal-backdrop ' + animate + '" />')
+                .prependTo(this.$element)
+                .on('click.dismiss.bs.popoverX', $.proxy(function(e) {
+                    if (e.target !== e.currentTarget) return
+                    this.options.backdrop == 'static' ? this.$element[0].focus.call(this.$element[0]) : this.hide.call(this)
+                }, this))
+
+            if (doAnimate) this.$backdrop[0].offsetWidth // force reflow
+
+            this.$backdrop.addClass('in')
+
+            if (!callback) return
+
+            doAnimate ?
+                this.$backdrop
+                .one('bsTransitionEnd', callback)
+                .emulateTransitionEnd(Modal.BACKDROP_TRANSITION_DURATION) :
+                callback()
+
+        } else if (!this.isShown && this.$backdrop) {
+            this.$backdrop.removeClass('in')
+
+            var callbackRemove = function() {
+                that.removeBackdrop()
+                callback && callback()
+            }
+            $.support.transition && this.$element.hasClass('fade') ?
+                this.$backdrop
+                .one('bsTransitionEnd', callbackRemove)
+                .emulateTransitionEnd(Modal.BACKDROP_TRANSITION_DURATION) :
+                callbackRemove()
+
+        } else if (callback) {
+            callback()
+        }
+    }
+
     PopoverX.prototype.show = function(_relatedTarget) {
         var that = this
+        var $tip = this.tip()
+        var tipId = this.getUID(this.type)
+
+        if (!$tip.parent().length) {
+            this.options.container ? $tip.appendTo(this.options.container) : $tip.insertAfter(this.$element)
+        }
+       
         var e = $.Event('show.bs.popoverX', {
             relatedTarget: _relatedTarget
         })
 
-        this.$element.trigger(e)
+        $tip.trigger(e)
 
         if (this.isShown || e.isDefaultPrevented()) return
 
+
+        $tip.on('click.dismiss.bs.popoverX', '[data-dismiss="popover-x"]', $.proxy(this.hide, this))
         this.isShown = true
 
-      var $tip = this.tip()
+        this.setContent()
+        this.backdrop();
 
-      var tipId = this.getUID(this.type)
+        $tip.attr('id', tipId)
+        this.$element.attr('aria-describedby', tipId)
+
+        $tip
+            .addClass('in')
+            .attr('aria-hidden', false)
+
+        if (this.options.animation) $tip.addClass('fade')
+
+        var transition = $.support.transition && $tip.hasClass('fade')
+
+        var placement = typeof this.options.placement == 'function' ?
+            this.options.placement.call(this, $tip[0], this.$element[0]) :
+            this.options.placement
 
 
-        this.escape()
-        this.resize()
+        var autoToken = /\s?auto?\s?/i
+        var autoPlace = autoToken.test(placement)
+        if (autoPlace) placement = placement.replace(autoToken, '') || 'top'
 
-        this.$element.on('click.dismiss.bs.popover-x', '[data-dismiss="popover-x"]', $.proxy(this.hide, this))
-
-        this.backdrop(function() {
-            var transition = $.support.transition && that.$element.hasClass('fade')
-
-            if (!that.$element.parent().length) {
-                that.$element.appendTo(that.$body) // don't move modals dom position
-            }
-
-            that.$element
-                .show()
-                .scrollTop(0)
-
-            if (that.options.backdrop) that.adjustBackdrop()
-
-            if (transition) {
-                that.$element[0].offsetWidth // force reflow
-            }
-
-            that.$element
-                .addClass('in')
-                .attr('aria-hidden', false)
-
-            that.enforceFocus()
-
-            var e = $.Event('shown.bs.popoverX', {
-                relatedTarget: _relatedTarget
+        $tip
+            .detach()
+            .css({
+                top: 0,
+                left: 0,
+                display: 'block'
             })
+            .addClass(placement)
+            .data('bs.' + this.type, this)
 
-            transition ?
-                that.$element.find('.popover-dialog') // wait for modal to slide in
-                .one('bsTransitionEnd', function() {
-                    that.$element.trigger('focus').trigger(e)
-                })
-                .emulateTransitionEnd(PopoverX.TRANSITION_DURATION) :
-                that.$element.trigger('focus').trigger(e)
+
+
+        var pos = this.getPosition()
+        var actualWidth = $tip[0].offsetWidth
+        var actualHeight = $tip[0].offsetHeight
+
+        if (autoPlace) {
+            var orgPlacement = placement
+            var $container = this.options.container ? $(this.options.container) : this.$element.parent()
+            var containerDim = this.getPosition($container)
+
+            placement = placement == 'bottom' && pos.bottom + actualHeight > containerDim.bottom ? 'top' :
+                placement == 'top' && pos.top - actualHeight < containerDim.top ? 'bottom' :
+                placement == 'right' && pos.right + actualWidth > containerDim.width ? 'left' :
+                placement == 'left' && pos.left - actualWidth < containerDim.left ? 'right' :
+                placement
+
+            $tip
+                .removeClass(orgPlacement)
+                .addClass(placement)
+        }
+
+        var calculatedOffset = this.getCalculatedOffset(placement, pos, actualWidth, actualHeight)
+
+        this.applyPlacement(calculatedOffset, placement)
+
+        if (that.options.backdrop) that.adjustBackdrop()
+
+        if (transition) {
+            $tip[0].offsetWidth // force reflow
+        }
+
+        that.enforceFocus()
+
+        var e = $.Event('shown.bs.popoverX', {
+            relatedTarget: _relatedTarget
         })
+
+        transition ?
+            $tip.find('.popover-dialog') // wait for modal to slide in
+            .one('bsTransitionEnd', function() {
+                $tip.trigger('focus').trigger(e)
+            })
+            .emulateTransitionEnd(PopoverX.TRANSITION_DURATION) :
+            $tip.trigger('focus').trigger(e)
+
+
+
     }
 
 
@@ -209,13 +310,13 @@
 
         //$target.trigger('click.target.popoverX');
 
-        $target.one('show.bs.modal', function(showEvent) {
+        $target.one('show.bs.popoverX', function(showEvent) {
             if (showEvent.isDefaultPrevented()) return // only register focus restorer if modal will actually get shown
-            $target.one('hidden.bs.modal', function() {
+            $target.one('hidden.bs.popoverX', function() {
                 $this.is(':visible') && $this.trigger('focus')
             })
         })
-        Plugin.call($target, option, this)
+        Plugin.call($this, option, this)
     })
 
 }(jQuery);
