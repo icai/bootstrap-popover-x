@@ -1,0 +1,42 @@
+{
+  "name": "bootstrap-popover-x",
+  "version": "2.0.0",
+  "description": "Bootstrap Popover Extended - Popover with modal behavior, styling enhancements and more.",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/icai/bootstrap-popover-x.git"
+  },
+  "keywords": [
+    "bootstrap",
+    "growl"
+  ],
+  "author": "icai <gidcai@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/icai/bootstrap-popover-x/issues"
+  },
+  //"homepage": "http://bootstrap-growl.remabledesigns.com/",
+  "main": "js/bootstrap-popover-x.js",
+  "directories": {
+    "dist": "dist"
+  },
+  "dependencies": {
+    "grunt": "~0.4.5",
+
+    "grunt-contrib-clean": "~0.6.0",
+    "grunt-autoprefixer": "~1.0.1",
+    "grunt-contrib-uglify": "~0.4.0",
+    // "grunt-contrib-csslint": "~0.3.1",
+    "grunt-contrib-cssmin": "~0.10.0",
+
+  },
+  "devDependencies": {
+    "grunt": "~0.4.5",
+    "grunt-contrib-clean": "~0.6.0",
+    "grunt-autoprefixer": "~1.0.1",
+    "grunt-contrib-uglify": "~0.4.0",
+    // "grunt-contrib-csslint": "~0.3.1",
+    "grunt-contrib-cssmin": "~0.10.0",
+    "grunt-contrib-jshint": "~0.10.0",
+  }
+}

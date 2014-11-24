@@ -1,156 +1,221 @@
 /*!
- * @copyright &copy; Kartik Visweswaran, Krajee.com, 2014
- * @version 1.2.0
- *
- * Bootstrap Popover Extended - Popover with modal behavior, styling enhancements and more.
- *
- * For more JQuery/Bootstrap plugins and demos visit http://plugins.krajee.com
- * For more Yii related demos visit http://demos.krajee.com
+ * Bootstrap: popover-x.js v3.3.1
+ * fork url: https://github.com/icai/bootstrap-popover-x
+ * Licensed under MIT
+ * don't complete , don't fork
+ *  
  */
-!function ($) {
-
-    var PopoverX = function (element, options) {
+! function($) {
+    var PopoverX = function(element, options) {
         var self = this;
-        self.options = options;
-        self.$element = $(element).on('click.dismiss.popoverX', '[data-dismiss="popover-x"]', $.proxy(self.hide, self));
-        self.init();
+        this.options = options;
+        this.$element = $(element).on('click.dismiss.popoverX', '[data-dismiss="popover-x"]', $.proxy(this.hide, this));
+        this.init();
     }
 
-    PopoverX.prototype = $.extend({}, $.fn.modal.Constructor.prototype, {
-        constructor: PopoverX,
-        init: function () {
-            var self = this;
-            self.$body = $(document.body);
-            self.$target = self.options.$target;
-            if (self.$element.find('.popover-footer').length) {
-                self.$element
-                    .removeClass('has-footer')
-                    .addClass('has-footer');
-            }
-            if (self.options.remote) {
-                self.$element.find('.popover-content').load(self.options.remote, function () {
-                    self.$element.trigger('load.complete.popoverX');
-                });
-            }
-        },
-        getPosition: function () {
-            var $element = this.$target;
-            return $.extend({}, ($element.position()), {
-                width: $element[0].offsetWidth, height: $element[0].offsetHeight
-            });
-        },
-        refreshPosition: function () {
-            var self = this, $dialog = self.$element, placement = self.options.placement,
-                actualWidth = $dialog[0].offsetWidth, actualHeight = $dialog[0].offsetHeight,
-                position, pos = self.getPosition();
-            switch (placement) {
-                case 'bottom':
-                    position = {top: pos.top + pos.height, left: pos.left + pos.width / 2 - actualWidth / 2}
-                    break;
-                case 'bottom bottom-left':
-                    position = {top: pos.top + pos.height, left: pos.left}
-                    break;
-                case 'bottom bottom-right':
-                    position = {top: pos.top + pos.height, left: pos.left + pos.width - actualWidth}
-                    break;
-                case 'top':
-                    position = {top: pos.top - actualHeight, left: pos.left + pos.width / 2 - actualWidth / 2}
-                    break;
-                case 'top top-left':
-                    position = {top: pos.top - actualHeight, left: pos.left}
-                    break;
-                case 'top top-right':
-                    position = {top: pos.top - actualHeight, left: pos.left + pos.width - actualWidth}
-                    break;
-                case 'left':
-                    position = {top: pos.top + pos.height / 2 - actualHeight / 2, left: pos.left - actualWidth}
-                    break;
-                case 'left left-top':
-                    position = {top: pos.top, left: pos.left - actualWidth}
-                    break;
-                case 'left left-bottom':
-                    position = {top: pos.top + pos.height - actualHeight, left: pos.left - actualWidth}
-                    break;
-                case 'right':
-                    position = {top: pos.top + pos.height / 2 - actualHeight / 2, left: pos.left + pos.width}
-                    break;
-                case 'right right-top':
-                    position = {top: pos.top, left: pos.left + pos.width}
-                    break;
-                case 'right right-bottom':
-                    position = {top: pos.top + pos.height - actualHeight, left: pos.left + pos.width}
-                    break;
-            }
-            $dialog
-                .css(position)
-                .addClass(placement)
-                .addClass('in');
-        },
-        show: function () {
-            var self = this, $dialog = self.$element;
-            $dialog.css({ top: 0, left: 0, display: 'block', 'z-index': 1050 });
-            self.refreshPosition();
-            $.fn.modal.Constructor.prototype.show.call(self, arguments);
+    PopoverX.VERSION = '3.3.1'
+
+    PopoverX.TRANSITION_DURATION = 150
+
+    PopoverX.DEFAULTS = $.extend({}, $.fn.modal.Constructor.defaults, $.fn.popover.Constructor.DEFAULTS, {
+        template: '<div class="popover" role="tooltip"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content"></div><div class="popover-fonter"></div></div>'
+        keyboard: true,
+        buttons: {},
+        fonter: ''
+
+    })
+
+    PopoverX.prototype = $.extend({}, $.fn.modal.Constructor.prototype, $.fn.popover.Constructor.prototype);
+
+
+    PopoverX.prototype.constructor = PopoverX;
+    PopoverX.prototype.init = function() {
+        this.$body = $(document.body);
+        this.$target = this.options.$target;
+        if (this.$element.find('.popover-footer').length) {
+            this.$element
+                .removeClass('has-footer')
+                .addClass('has-footer');
         }
-    });
-
-    $.fn.popoverX = function (option) {
-        var self = this;
-        return self.each(function () {
-            var $this = $(this);
-            var data = $this.data('popover-x');
-            var options = $.extend({}, $.fn.popoverX.defaults, $this.data(), typeof option == 'object' && option);
-            if (!options['$target']) {
-                if (data && data.$target) {
-                    options['$target'] = data.$target;
-                } else {
-                    options['$target'] = option.$target || $(option.target);
-                }
-            }
-            if (!data) {
-                $this.data('popover-x', (data = new PopoverX(this, options)))
-            }
-
-            if (typeof option == 'string') {
-                data[option]()
-            }
-        });
+        if (this.options.remote) {
+            this.$element.find('.popover-content').load(this.options.remote, $.proxy(function() {
+                this.$element.trigger('load.complete.popoverX');
+            }, this));
+        }
     }
 
-    $.fn.popoverX.defaults = $.extend({}, $.fn.modal.defaults, {
-        placement: 'right',
-        keyboard: true
-    });
+    PopoverX.prototype.getUID = function(prefix) {
+        do prefix += ~~(Math.random() * 1000000)
+        while (document.getElementById(prefix))
+        return prefix
+    }
 
-    $(document).on('ready', function () {
-        $("[data-toggle='popover-x']").on('click', function (e) {
-            var $this = $(this), href = $this.attr('href'),
-                $dialog = $($this.attr('data-target') || (href && href.replace(/.*(?=#[^\s]+$)/, ''))), //strip for ie7
-                option = $dialog.data('popover-x') ? 'toggle' : $.extend({ remote: !/#/.test(href) && href }, $dialog.data(), $this.data());
-            e.preventDefault();
-            $dialog.trigger('click.target.popoverX');
-            if (option !== 'toggle') {
-                option['$target'] = $this;
-                $dialog
-                    .popoverX(option)
-                    .popoverX('show')
-                    .on('hide', function () {
-                        $this.focus()
-                    });
-            }
-            else {
-                $dialog
-                    .popoverX(option)
-                    .on('hide', function () {
-                        $this.focus()
-                    });
-            }
-        });
 
-        $('[data-toggle="popover-x"]').on('keyup', function (e) {
-            var $this = $(this),
-                $dialog = $($this.attr('data-target') || (href && href.replace(/.*(?=#[^\s]+$)/, ''))); //strip for ie7
-           $dialog && e.which == 27 && $dialog.trigger('keyup.target.popoverX') && $dialog.popoverX('hide');
-        });
-    });
-}(window.jQuery);
+    PopoverX.prototype.resize = function() {
+        if (this.isShown) {
+            $(window).on('resize.bs.modal', $.proxy(this.handleUpdate, this))
+        } else {
+            $(window).off('resize.bs.modal')
+        }
+    }
+
+
+    Popover.prototype.setContent = function() {
+        var $tip = this.tip()
+        var title = this.getTitle()
+        var content = this.getContent()
+
+        $tip.find('.popover-title')[this.options.html ? 'html' : 'text'](title)
+        $tip.find('.popover-content').children().detach().end()[ // we use append for html objects to maintain js events
+            this.options.html ? (typeof content == 'string' ? 'html' : 'append') : 'text'
+        ](content)
+
+        $tip.removeClass('fade top bottom left right in')
+
+        // IE8 doesn't accept hiding via the `:empty` pseudo selector, we have to do
+        // this manually by checking the contents.
+        if (!$tip.find('.popover-title').html()) $tip.find('.popover-title').hide()
+        if (!$tip.find('.popover-title').html()) $tip.find('.popover-fonter').hide()
+    }
+
+    PopoverX.prototype.handleUpdate = function() {
+
+
+    }
+
+    PopoverX.prototype.escape = function() {
+        if (this.isShown && this.options.keyboard) {
+            this.$element.on('keydown.dismiss.bs.popoverX', $.proxy(function(e) {
+                e.which == 27 && this.hide()
+            }, this))
+        } else if (!this.isShown) {
+            this.$element.off('keydown.dismiss.bs.popoverX')
+        }
+    }
+
+    PopoverX.prototype.hide = function() {
+
+    }
+
+
+
+    PopoverX.prototype.setFonter = function() {
+
+    }
+
+
+    PopoverX.prototype.show = function(_relatedTarget) {
+        var that = this
+        var e = $.Event('show.bs.popoverX', {
+            relatedTarget: _relatedTarget
+        })
+
+        this.$element.trigger(e)
+
+        if (this.isShown || e.isDefaultPrevented()) return
+
+        this.isShown = true
+
+      var $tip = this.tip()
+
+      var tipId = this.getUID(this.type)
+
+
+        this.escape()
+        this.resize()
+
+        this.$element.on('click.dismiss.bs.popover-x', '[data-dismiss="popover-x"]', $.proxy(this.hide, this))
+
+        this.backdrop(function() {
+            var transition = $.support.transition && that.$element.hasClass('fade')
+
+            if (!that.$element.parent().length) {
+                that.$element.appendTo(that.$body) // don't move modals dom position
+            }
+
+            that.$element
+                .show()
+                .scrollTop(0)
+
+            if (that.options.backdrop) that.adjustBackdrop()
+
+            if (transition) {
+                that.$element[0].offsetWidth // force reflow
+            }
+
+            that.$element
+                .addClass('in')
+                .attr('aria-hidden', false)
+
+            that.enforceFocus()
+
+            var e = $.Event('shown.bs.popoverX', {
+                relatedTarget: _relatedTarget
+            })
+
+            transition ?
+                that.$element.find('.popover-dialog') // wait for modal to slide in
+                .one('bsTransitionEnd', function() {
+                    that.$element.trigger('focus').trigger(e)
+                })
+                .emulateTransitionEnd(PopoverX.TRANSITION_DURATION) :
+                that.$element.trigger('focus').trigger(e)
+        })
+    }
+
+
+    // POPOVER-X PLUGIN DEFINITION
+    // =======================
+
+    function Plugin(option, _relatedTarget) {
+        return this.each(function() {
+            var $this = $(this)
+            var data = $this.data('bs.popover-x')
+            var options = $.extend({}, PopoverX.DEFAULTS, $this.data(), typeof option == 'object' && option)
+
+            if (!data) $this.data('bs.popover-x', (data = new PopoverX(this, options)))
+            if (typeof option == 'string') data[option](_relatedTarget)
+            else if (options.show) data.show(_relatedTarget)
+        })
+    }
+
+    var old = $.fn.popoverX
+
+    $.fn.popoverX = Plugin
+    $.fn.popoverX.Constructor = PopoverX
+
+
+    // POPOVER-X NO CONFLICT
+    // =================
+
+    $.fn.popoverX.noConflict = function() {
+        $.fn.popoverX = old
+        return this
+    }
+
+
+    // MODAL DATA-API
+    // ==============
+
+    $(document).on('click.bs.popover-x.data-api', '[data-toggle="popover-x"]', function(e) {
+        var $this = $(this)
+        var href = $this.attr('href')
+        var $target = $($this.attr('data-target') || (href && href.replace(/.*(?=#[^\s]+$)/, ''))) // strip for ie7
+        var option = $target.data('bs.popover-x') ? 'toggle' : $.extend({
+            remote: !/#/.test(href) && href
+        }, $target.data(), $this.data())
+
+        if ($this.is('a')) e.preventDefault()
+
+        //$target.trigger('click.target.popoverX');
+
+        $target.one('show.bs.modal', function(showEvent) {
+            if (showEvent.isDefaultPrevented()) return // only register focus restorer if modal will actually get shown
+            $target.one('hidden.bs.modal', function() {
+                $this.is(':visible') && $this.trigger('focus')
+            })
+        })
+        Plugin.call($target, option, this)
+    })
+
+}(jQuery);
