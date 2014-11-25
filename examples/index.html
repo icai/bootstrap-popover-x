@@ -24,15 +24,15 @@
                 <button class="btn btn-primary btn-lg" data-toggle="popover-x" data-target="#myPopover3" data-placement="bottom">Bottom</button>
                 <button class="btn btn-primary btn-lg" data-toggle="popover-x" data-target="#myPopover4" data-placement="left">Left</button>
                 <hr>
-                <button class="btn btn-primary btn-lg" data-toggle="popover-x" data-target="#myPopover10a" data-placement="top top-left">Top Left</button>
-                <button class="btn btn-primary btn-lg" data-toggle="popover-x" data-target="#myPopover10b" data-placement="top top-right">Top Right</button>
-                <button class="btn btn-primary btn-lg" data-toggle="popover-x" data-target="#myPopover10c" data-placement="bottom bottom-left">Bottom Left</button>
-                <button class="btn btn-primary btn-lg" data-toggle="popover-x" data-target="#myPopover10d" data-placement="bottom bottom-right">Bottom Right</button>
+                <button class="btn btn-primary btn-lg" data-toggle="popover-x" data-target="#myPopover10a" data-placement="top-left">Top Left</button>
+                <button class="btn btn-primary btn-lg" data-toggle="popover-x" data-target="#myPopover10b" data-placement="top-right">Top Right</button>
+                <button class="btn btn-primary btn-lg" data-toggle="popover-x" data-target="#myPopover10c" data-placement="bottom-left">Bottom Left</button>
+                <button class="btn btn-primary btn-lg" data-toggle="popover-x" data-target="#myPopover10d" data-placement="bottom-right">Bottom Right</button>
                 <hr>
-                <button class="btn btn-primary btn-lg" data-toggle="popover-x" data-target="#myPopover20a" data-placement="left left-top">Left Top</button>
-                <button class="btn btn-primary btn-lg" data-toggle="popover-x" data-target="#myPopover20b" data-placement="left left-bottom">Left Bottom</button>
-                <button class="btn btn-primary btn-lg" data-toggle="popover-x" data-target="#myPopover20c" data-placement="right right-top">Right Top</button>
-                <button class="btn btn-primary btn-lg" data-toggle="popover-x" data-target="#myPopover20d" data-placement="right right-bottom">Right Bottom</button>
+                <button class="btn btn-primary btn-lg" data-toggle="popover-x" data-target="#myPopover20a" data-placement="left-top">Left Top</button>
+                <button class="btn btn-primary btn-lg" data-toggle="popover-x" data-target="#myPopover20b" data-placement="left-bottom">Left Bottom</button>
+                <button class="btn btn-primary btn-lg" data-toggle="popover-x" data-target="#myPopover20c" data-placement="right-top">Right Top</button>
+                <button class="btn btn-primary btn-lg" data-toggle="popover-x" data-target="#myPopover20d" data-placement="right-bottom">Right Bottom</button>
                  
                 <!-- PopoverX content -->
                 <div id="myPopover1" class="popover popover-default">
@@ -276,6 +276,15 @@
         </div>  
     </body>
 	<script>
+        $(function(){
+            $('button').on('click',function(){
+                $(this).popoverX({
+                    title: 'xxxx',
+                    content:'text'
+                })
+            })
+
+        })
     
 	</script>
 </html>

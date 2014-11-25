@@ -5,6 +5,43 @@
  * don't complete , don't fork
  *
  */
+
+// bootstrap popover
+(function($, undefined){
+
+    $.fn.popover.Constructor.prototype.setContent = function () {
+      var $tip    = this.tip()
+      var title   = this.getTitle()
+      var content = this.getContent()
+
+      $tip.find('.popover-title')[this.options.html ? 'html' : 'text'](title)
+      $tip.find('.popover-content').children().detach().end()[ // we use append for html objects to maintain js events
+        this.options.html ? (typeof content == 'string' ? 'html' : 'append') : 'text'
+      ](content)
+
+      $tip.removeClass('fade top bottom left right bottom-left top-left bottom-right top-right right-top left-top right-bottom left-bottom in')
+
+      // IE8 doesn't accept hiding via the `:empty` pseudo selector, we have to do
+      // this manually by checking the contents.
+      if (!$tip.find('.popover-title').html()) $tip.find('.popover-title').hide()
+  }
+
+    $.fn.popover.Constructor.prototype.getCalculatedOffset = function (placement, pos, actualWidth, actualHeight) {
+        return placement == 'bottom' ? { top: pos.top + pos.height,   left: pos.left + pos.width / 2 - actualWidth / 2  } :
+               placement == 'top'    ? { top: pos.top - actualHeight, left: pos.left + pos.width / 2 - actualWidth / 2  } :
+               placement == 'left'   ? { top: pos.top + pos.height / 2 - actualHeight / 2, left: pos.left - actualWidth } :
+               placement == 'right' ? { top: pos.top + pos.height / 2 - actualHeight / 2, left: pos.left + pos.width   } :
+               placement == 'bottom-left' ? {top: pos.top + pos.height, left: pos.left + pos.width / 2 - (actualWidth * .10)} :
+               placement == 'top-left' ? {top: pos.top - actualHeight,  left: pos.left + pos.width / 2 - (actualWidth * .10)} :
+               placement == 'bottom-right' ? {top: pos.top + pos.height, left: pos.left + pos.width / 2 - (actualWidth * .90)} :
+               placement == 'top-right' ? {top: pos.top - actualHeight, left: pos.left + pos.width / 2 - (actualWidth * .90)} :
+               placement == 'right-top' ? {top: pos.top + pos.height / 2 - (actualHeight *.10), left: pos.left + pos.width} : 
+               placement == 'left-top' ? {top: pos.top + pos.height / 2 - (actualHeight *.10), left: pos.left - actualWidth} :
+               placement == 'right-bottom' ? {top: pos.top + pos.height / 2 - (actualHeight * .90), left: pos.left + pos.width} :
+               /* placement == 'left-bottom' */ {top: pos.top + pos.height / 2 - (actualHeight * .90), left: pos.left - actualWidth}
+    }
+})(jQuery);
+
 ! function($) {
     var PopoverX = function(element, options) {
         this.type = 'popoverX'
@@ -17,25 +54,29 @@
 
     PopoverX.TRANSITION_DURATION = 150
 
-    PopoverX.DEFAULTS = $.extend({}, $.fn.modal.Constructor.defaults, $.fn.popover.Constructor.DEFAULTS, {
-        template: '<div class="popover" role="tooltip"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content"></div><div class="popover-fonter"></div></div>',
+    PopoverX.DEFAULTS = {
+        template: '<div class="popover" role="dialog"><div class="arrow"></div><div class="popover-dialog"><h3 class="popover-title"></h3><div class="popover-content"></div><div class="popover-fonter"></div></div></div>',
         keyboard: true,
         container: 'body',
         buttons: {},
-        fonter: ''
+        fonter: '',
+        content: '',
+        dismiss: true,
+        //animation: true,
+        placement: 'right',
+        trigger: '', // manual, click
+        title: '',
+        delay: 0,
+        //html: false,
+        viewport: {
+          selector: 'body',
+          padding: 0
+        },
+        backdrop: true,
+        show: true
+    }
 
-    })
-
-    PopoverX.prototype = $.extend({}, $.fn.modal.Constructor.prototype ,{
-        tip: $.fn.popover.Constructor.prototype.tip,
-        getTitle: $.fn.popover.Constructor.prototype.getTitle,
-        getContent: $.fn.popover.Constructor.prototype.getContent,
-        getPosition: $.fn.popover.Constructor.prototype.getPosition,
-        getCalculatedOffset: $.fn.popover.Constructor.prototype.getCalculatedOffset,
-        applyPlacement: $.fn.popover.Constructor.prototype.applyPlacement,
-        getViewportAdjustedDelta: $.fn.popover.Constructor.prototype.getViewportAdjustedDelta,
-        replaceArrow: $.fn.popover.Constructor.prototype.replaceArrow
-    });
+    PopoverX.prototype = $.extend({}, $.fn.popover.Constructor.prototype);
 
 
     PopoverX.prototype.constructor = PopoverX;
@@ -43,24 +84,32 @@
         this.$element = $(element);
         this.options = options;
         this.$body = $(document.body);
-        this.$target = this.options.$target;
-        if (this.$element.find('.popover-footer').length) {
-            this.$element
-                .removeClass('has-footer')
-                .addClass('has-footer');
-        }
-        if (this.options.remote) {
-            this.$element.find('.popover-content').load(this.options.remote, $.proxy(function() {
-                this.$element.trigger('load.complete.popoverX');
-            }, this));
+        this.$viewport = this.options.viewport && $(this.options.viewport.selector || this.options.viewport)
+
+        var triggers = this.options.trigger.split(' ')
+
+        for (var i = triggers.length; i--;) {
+          var trigger = triggers[i]
+          if (trigger == 'click') {
+            this.$element.on('click.' + this.type, this.options.selector, $.proxy(this.toggle, this))
+          }
         }
     }
 
-    PopoverX.prototype.getUID = function(prefix) {
-        do prefix += ~~(Math.random() * 1000000)
-        while (document.getElementById(prefix))
-        return prefix
+    PopoverX.prototype.replaceArrow = function (delta, dimension, isHorizontal) {
+        var placement = this.options.placement
+        this.arrow()
+          .css(isHorizontal ? 'left' : 'top', 50 * (1 - delta / dimension) + '%')
+          .css(isHorizontal ? 'top' : 'left', '')
+
+        if(placement.split('-').length == 2){
+            this.arrow()
+              .css(isHorizontal ? 'left' : 'top', '')
+              .css(isHorizontal ? 'top' : 'left', '')
+        }
+
     }
+
 
     PopoverX.prototype.resize = function() {
         if (this.isShown) {
@@ -69,8 +118,6 @@
             $(window).off('resize.bs.modal')
         }
     }
-
-
 
     PopoverX.prototype.setContent = function() {
         var $tip = this.tip()
@@ -82,18 +129,38 @@
             this.options.html ? (typeof content == 'string' ? 'html' : 'append') : 'text'
         ](content)
 
+        if ($tip.find('.popover-footer').length) {
+            $tip
+                .removeClass('has-footer')
+                .addClass('has-footer');
+        }
+        if (this.options.remote) {
+            $tip.find('.popover-content').load(this.options.remote, $.proxy(function() {
+                $tip.trigger('load.complete.popoverX');
+            }, this));
+        }
+
         $tip.removeClass('fade top bottom left right in')
 
         // IE8 doesn't accept hiding via the `:empty` pseudo selector, we have to do
         // this manually by checking the contents.
         if (!$tip.find('.popover-title').html()) $tip.find('.popover-title').hide()
         if (!$tip.find('.popover-fonter').html()) $tip.find('.popover-fonter').hide()
-    }
 
-    PopoverX.prototype.handleUpdate = function() {
-
+        $tip.on('click.dismiss.bs.popoverX', '[data-dismiss="popover-x"]', $.proxy(this.hide, this))    
 
     }
+
+      PopoverX.prototype.enforceFocus = function () {
+        var $tip = this.tip()
+        $(document)
+          .off('focusin.bs.modal') // guard against infinite focus loop
+          .on('focusin.bs.modal', $.proxy(function (e) {
+            if ($tip !== e.target && !$tip.has(e.target).length) {
+              $tip.trigger('focus')
+            }
+          }, this))
+      }
 
     PopoverX.prototype.escape = function() {
         if (this.isShown && this.options.keyboard) {
@@ -105,91 +172,39 @@
         }
     }
 
-    PopoverX.prototype.hide = function() {
-
-    }
-
-
-
-    PopoverX.prototype.setFonter = function() {
-
-    }
-
-
     PopoverX.prototype.backdrop = function(callback) {
         var that = this
-        var animate = this.$element.hasClass('fade') ? 'fade' : ''
-
-        if (this.isShown && this.options.backdrop) {
-            var doAnimate = $.support.transition && animate
-
-            this.$backdrop = $('<div class="modal-backdrop ' + animate + '" />')
-                .prependTo(this.$element)
-                .on('click.dismiss.bs.popoverX', $.proxy(function(e) {
-                    if (e.target !== e.currentTarget) return
-                    this.options.backdrop == 'static' ? this.$element[0].focus.call(this.$element[0]) : this.hide.call(this)
-                }, this))
-
-            if (doAnimate) this.$backdrop[0].offsetWidth // force reflow
-
-            this.$backdrop.addClass('in')
-
-            if (!callback) return
-
-            doAnimate ?
-                this.$backdrop
-                .one('bsTransitionEnd', callback)
-                .emulateTransitionEnd(Modal.BACKDROP_TRANSITION_DURATION) :
-                callback()
-
-        } else if (!this.isShown && this.$backdrop) {
-            this.$backdrop.removeClass('in')
-
-            var callbackRemove = function() {
-                that.removeBackdrop()
-                callback && callback()
-            }
-            $.support.transition && this.$element.hasClass('fade') ?
-                this.$backdrop
-                .one('bsTransitionEnd', callbackRemove)
-                .emulateTransitionEnd(Modal.BACKDROP_TRANSITION_DURATION) :
-                callbackRemove()
-
-        } else if (callback) {
-            callback()
+        if(this.options.backdrop){
+            var $tip = this.tip();
+            this.$backdrop = $('<div class="popover-backdrop " />')
+                .prependTo($tip)
         }
-    }
+     }
+
+      PopoverX.prototype.toggle = function (_relatedTarget) {
+        return this.isShown ? this.hide() : this.show(_relatedTarget)
+      }
+
 
     PopoverX.prototype.show = function(_relatedTarget) {
         var that = this
         var $tip = this.tip()
         var tipId = this.getUID(this.type)
 
-        if (!$tip.parent().length) {
-            this.options.container ? $tip.appendTo(this.options.container) : $tip.insertAfter(this.$element)
-        }
-       
         var e = $.Event('show.bs.popoverX', {
             relatedTarget: _relatedTarget
         })
-
         $tip.trigger(e)
 
         if (this.isShown || e.isDefaultPrevented()) return
 
-
-        $tip.on('click.dismiss.bs.popoverX', '[data-dismiss="popover-x"]', $.proxy(this.hide, this))
         this.isShown = true
 
-        this.setContent()
         this.backdrop();
+        this.setContent()
 
         $tip.attr('id', tipId)
         this.$element.attr('aria-describedby', tipId)
-
-        $tip
-            .addClass('in')
-            .attr('aria-hidden', false)
 
         if (this.options.animation) $tip.addClass('fade')
 
@@ -214,6 +229,9 @@
             .addClass(placement)
             .data('bs.' + this.type, this)
 
+        if (!$tip.parent().length) {
+            this.options.container ? $tip.appendTo(this.options.container) : $tip.insertAfter(this.$element)
+        }
 
 
         var pos = this.getPosition()
@@ -236,15 +254,15 @@
                 .addClass(placement)
         }
 
-        var calculatedOffset = this.getCalculatedOffset(placement, pos, actualWidth, actualHeight)
+        var multi = placement.split('-');
+        if(multi.length == 2){
+            $tip.addClass(multi[0])
+        }
 
+        var calculatedOffset = this.getCalculatedOffset(placement, pos, actualWidth, actualHeight)
         this.applyPlacement(calculatedOffset, placement)
 
-        if (that.options.backdrop) that.adjustBackdrop()
 
-        if (transition) {
-            $tip[0].offsetWidth // force reflow
-        }
 
         that.enforceFocus()
 
@@ -259,8 +277,6 @@
             })
             .emulateTransitionEnd(PopoverX.TRANSITION_DURATION) :
             $tip.trigger('focus').trigger(e)
-
-
 
     }
 
@@ -280,6 +296,7 @@
         })
     }
 
+
     var old = $.fn.popoverX
 
     $.fn.popoverX = Plugin
@@ -295,28 +312,8 @@
     }
 
 
-    // MODAL DATA-API
-    // ==============
 
-    $(document).on('click.bs.popover-x.data-api', '[data-toggle="popover-x"]', function(e) {
-        var $this = $(this)
-        var href = $this.attr('href')
-        var $target = $($this.attr('data-target') || (href && href.replace(/.*(?=#[^\s]+$)/, ''))) // strip for ie7
-        var option = $target.data('bs.popover-x') ? 'toggle' : $.extend({
-            remote: !/#/.test(href) && href
-        }, $target.data(), $this.data())
 
-        if ($this.is('a')) e.preventDefault()
 
-        //$target.trigger('click.target.popoverX');
-
-        $target.one('show.bs.popoverX', function(showEvent) {
-            if (showEvent.isDefaultPrevented()) return // only register focus restorer if modal will actually get shown
-            $target.one('hidden.bs.popoverX', function() {
-                $this.is(':visible') && $this.trigger('focus')
-            })
-        })
-        Plugin.call($this, option, this)
-    })
 
 }(jQuery);
